@@ -1,83 +1,45 @@
-# Batch-Input-in-ABAP
-Em ABAP (Advanced Business Application Programming), a criação de entradas em lote (batch input) é geralmente feita usando a função `BDC_OPEN_GROUP` para abrir um grupo de processamento em lote, seguida por várias chamadas para `BDC_INSERT` para adicionar transações ao grupo, e finalmente, `BDC_CLOSE_GROUP` para fechar o grupo e iniciar o processamento em lote.
+Passo a passo a criação de uma entrada em lote em ABAP usando o método BDC (Batch Data Communication).
 
-Aqui está um exemplo simples de como você pode criar uma entrada em lote em ABAP:
+1. **Abertura do Grupo de Processamento em Lote:**
 
-```abap
-REPORT ZBATCH_INPUT_EXAMPLE.
+   O primeiro passo é abrir um grupo de processamento em lote usando a função `BDC_OPEN_GROUP`. Isso é feito para agrupar as transações que serão processadas em lote.
 
-DATA: v_program TYPE sy-repid,
-      v_dynpro TYPE sy-dynnr,
-      v_dynbegin TYPE sy-dynnr,
-      v_dynend TYPE sy-dynnr.
+   ```abap
+   CALL FUNCTION 'BDC_OPEN_GROUP'
+     EXPORTING
+       group = 'BDC_GROUP' " Especifique um nome para o grupo
+   ```
 
-DATA: BEGIN OF gt_bdcdata OCCURS 0,
-        bdcdata(255) TYPE C,
-      END OF gt_bdcdata.
+2. **Adição de Transações ao Grupo:**
 
-DATA: v_bdcmsgcoll TYPE TABLE OF bdcmsgcoll,
-      v_bdcmsg TYPE bdcmsg,
-      v_bdcmsgtxt TYPE bdcmsgtxt.
+   Em seguida, você adiciona as transações ao grupo usando a função `BDC_INSERT`. Neste exemplo, estou usando a transação `XD02` para modificar um cliente.
 
-* Função para adicionar uma transação ao grupo de processamento em lote
-FORM add_transaction USING p_program TYPE sy-repid
-                         p_dynpro TYPE sy-dynnr
-                         p_dynbegin TYPE sy-dynnr
-                         p_dynend TYPE sy-dynnr.
+   ```abap
+   CALL FUNCTION 'BDC_INSERT'
+     EXPORTING
+       tcode = 'XD02'    " Transação a ser executada
+       " Adicione os dados de entrada aqui
+   ```
 
-  CLEAR: v_bdcmsgcoll, gt_bdcdata[].
+   Se você estiver atualizando um campo em um Dynpro específico, precisará incluir as informações sobre o Dynpro usando `CALL FUNCTION 'BDC_INSERT'` novamente.
 
-* Populando o grupo de dados BDC
-  APPEND 'BDC_OPEN_GROUP' TO gt_bdcdata.
-  APPEND 'GROUP' TO gt_bdcdata.
-  APPEND 'BDCGRP1' TO gt_bdcdata.
+3. **Fechamento do Grupo de Processamento em Lote:**
 
-  APPEND 'BDC_INSERT' TO gt_bdcdata.
-  APPEND '0' TO gt_bdcdata.
-  APPEND 'TRANSACTION' TO gt_bdcdata.
-  APPEND p_program TO gt_bdcdata.
+   Por fim, você fecha o grupo de processamento em lote usando `BDC_CLOSE_GROUP`. Isso inicia o processamento em lote.
 
-  APPEND 'BDC_INSERT' TO gt_bdcdata.
-  APPEND '1' TO gt_bdcdata.
-  APPEND 'DYNPRO' TO gt_bdcdata.
-  APPEND p_dynpro TO gt_bdcdata.
-  APPEND 'DYNBEGIN' TO gt_bdcdata.
-  APPEND p_dynbegin TO gt_bdcdata.
-  APPEND 'DYNNR' TO gt_bdcdata.
-  APPEND p_dynend TO gt_bdcdata.
+   ```abap
+   CALL FUNCTION 'BDC_CLOSE_GROUP'
+   ```
 
-  APPEND 'BDC_CLOSE_GROUP' TO gt_bdcdata.
+4. **Chamada da Transação em Lote:**
 
-* Executando a transação em lote
-  CALL TRANSACTION 'SM35' USING gt_bdcdata
-                                MODE 'E'
-                                UPDATE 'S'
-                                MESSAGES INTO v_bdcmsgcoll.
+   Após fechar o grupo, você pode chamar a transação em lote usando `CALL TRANSACTION`. Este passo irá executar as transações do grupo.
 
-* Verificando mensagens de retorno
-  LOOP AT v_bdcmsgcoll INTO v_bdcmsg.
-    LOOP AT v_bdcmsg-msgtxt INTO v_bdcmsgtxt.
-      WRITE: / 'Mensagem:', v_bdcmsgtxt-msgid,
-             / 'Número:', v_bdcmsgtxt-msgno,
-             / 'Texto:', v_bdcmsgtxt-msgty,
-             / v_bdcmsgtxt-msgid.
-    ENDLOOP.
-  ENDLOOP.
+   ```abap
+   CALL TRANSACTION 'BDC_GROUP'
+     USING bdcdata
+     MODE 'N'  " 'N' para execução normal, 'A' para execução automática
+     UPDATE 'S'
+   ```
 
-ENDFORM.
-
-* Exemplo de chamada da função para adicionar uma transação
-START-OF-SELECTION.
-
-  v_program = 'SAPLSMTR_NAVIGATION'.
-  v_dynpro = '1000'.
-  v_dynbegin = '1000'.
-  v_dynend = '1000'.
-
-  PERFORM add_transaction USING v_program v_dynpro v_dynbegin v_dynend.
-
-```
-
-Este é um exemplo muito básico e genérico. Certifique-se de adaptá-lo às suas necessidades específicas, incluindo a modificação do programa (`v_program`), a tela inicial (`v_dynpro`), a tela inicial de intervalo (`v_dynbegin`) e a tela final de intervalo (`v_dynend`). Além disso, você pode precisar ajustar o nome do grupo (`BDCGRP1`) conforme necessário.
-
-Tenha em mente que a criação de entradas em lote em ABAP é uma técnica poderosa, mas pode exigir um entendimento profundo do sistema SAP e das transações específicas que você está tentando automatizar. Certifique-se de testar cuidadosamente em um ambiente de desenvolvimento antes de usar em um sistema de produção.
+No exemplo acima, `BDC_GROUP` é o nome do grupo que você especificou na abertura do grupo. Certifique-se de preencher os detalhes específicos da transação e os dados de entrada conforme necessário.
