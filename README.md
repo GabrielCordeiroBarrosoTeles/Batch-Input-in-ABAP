@@ -1,4 +1,4 @@
-##Batch-Input
+## Batch-Input
 O termo "batch input" é frequentemente associado ao método de gravação e reprodução de transações em lote usando transações de gravação. Vamos abordar isso de forma mais específica.
 
 O Batch Input é um método no SAP que permite a gravação e reprodução de transações em lote. A ideia é gravar uma transação manualmente e, em seguida, reproduzi-la várias vezes usando os dados gravados. Aqui está um exemplo de como você pode criar e executar um Batch Input:
