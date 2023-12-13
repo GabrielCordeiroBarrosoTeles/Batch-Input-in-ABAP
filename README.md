@@ -1,45 +1,44 @@
-Passo a passo a criação de uma entrada em lote em ABAP usando o método BDC (Batch Data Communication).
+O termo "batch input" é frequentemente associado ao método de gravação e reprodução de transações em lote usando transações de gravação. Vamos abordar isso de forma mais específica.
 
-1. **Abertura do Grupo de Processamento em Lote:**
+O Batch Input é um método no SAP que permite a gravação e reprodução de transações em lote. A ideia é gravar uma transação manualmente e, em seguida, reproduzi-la várias vezes usando os dados gravados. Aqui está um exemplo de como você pode criar e executar um Batch Input:
 
-   O primeiro passo é abrir um grupo de processamento em lote usando a função `BDC_OPEN_GROUP`. Isso é feito para agrupar as transações que serão processadas em lote.
+1. **Gravação de uma Transação:**
+   - Execute a transação manualmente usando a transação `SHDB`. 
+   - Grave as ações executadas durante a transação.
+   - Ao finalizar, forneça um nome para o programa de Batch Input.
+
+2. **Criação de um Programa de Batch Input:**
+   - Vá para a transação `SE38` para criar um novo programa ABAP.
+   - No código do programa, você precisará chamar a função `BDC_OPEN_GROUP`, adicionar os dados gravados usando `BDC_INSERT` e, finalmente, fechar o grupo usando `BDC_CLOSE_GROUP`.
+
+   Exemplo de código ABAP:
 
    ```abap
+   REPORT ZBATCH_INPUT_EXAMPLE.
+
+   DATA: v_bdcdata TYPE TABLE OF bdcdata,
+         v_dynpro TYPE sy-dynnr.
+
+   " Início do grupo de Batch Input
    CALL FUNCTION 'BDC_OPEN_GROUP'
      EXPORTING
-       group = 'BDC_GROUP' " Especifique um nome para o grupo
+       group = 'BDC_GROUP'
+       USER = sy-uname
+       CLIENT = sy-mandt.
+
+   " Adicionar dados gravados
+   APPEND VALUE #( 'BDC_INSERT' '0' 'TRANSACTION' 'TransactionCode' ) TO v_bdcdata.
+
+   " Fim do grupo de Batch Input
+   CALL FUNCTION 'BDC_CLOSE_GROUP'.
+
+   " Executar o Batch Input
+   CALL TRANSACTION 'TransactionCode' USING v_bdcdata.
+
    ```
 
-2. **Adição de Transações ao Grupo:**
+3. **Execução do Programa:**
+   - Execute o programa que você criou usando a transação `SE38`.
+   - Isso executará a transação em lote usando os dados gravados.
 
-   Em seguida, você adiciona as transações ao grupo usando a função `BDC_INSERT`. Neste exemplo, estou usando a transação `XD02` para modificar um cliente.
-
-   ```abap
-   CALL FUNCTION 'BDC_INSERT'
-     EXPORTING
-       tcode = 'XD02'    " Transação a ser executada
-       " Adicione os dados de entrada aqui
-   ```
-
-   Se você estiver atualizando um campo em um Dynpro específico, precisará incluir as informações sobre o Dynpro usando `CALL FUNCTION 'BDC_INSERT'` novamente.
-
-3. **Fechamento do Grupo de Processamento em Lote:**
-
-   Por fim, você fecha o grupo de processamento em lote usando `BDC_CLOSE_GROUP`. Isso inicia o processamento em lote.
-
-   ```abap
-   CALL FUNCTION 'BDC_CLOSE_GROUP'
-   ```
-
-4. **Chamada da Transação em Lote:**
-
-   Após fechar o grupo, você pode chamar a transação em lote usando `CALL TRANSACTION`. Este passo irá executar as transações do grupo.
-
-   ```abap
-   CALL TRANSACTION 'BDC_GROUP'
-     USING bdcdata
-     MODE 'N'  " 'N' para execução normal, 'A' para execução automática
-     UPDATE 'S'
-   ```
-
-No exemplo acima, `BDC_GROUP` é o nome do grupo que você especificou na abertura do grupo. Certifique-se de preencher os detalhes específicos da transação e os dados de entrada conforme necessário.
+Lembre-se de substituir 'TransactionCode' pelo código da transação que você gravou.
